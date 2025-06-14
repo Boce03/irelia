@@ -13,12 +13,13 @@
     extern void yyerror(const std::string& s);
 
     typedef enum{
-        NONE,
+        TARGET,
+        ASSET,
         OPTION,
         EXECUTE
     }State;
 
-    State state = NONE;
+    State state = TARGET;
 %}
 
 %x execute_s
@@ -31,7 +32,7 @@
     return CONFIG_T;
 }
 
-<option_s>-[^ \t\n] {
+<option_s>-[^ \t\n]+ {
     yylval.s = new std::string(yytext);
     return OPTION_T;
 } 
@@ -39,17 +40,18 @@
 <option_s>[ \t] { }
 
 \.(target|TARGET) {
-    return TARGET_T;
+    return GLOBAL_TARGET_T;
 }
 
 
-[^ \t\n/\0:>] {
-    if (std::strlen(yytext) > FILE_NAME) {
+[^ \t\n/\0:>]+ {
+    if (strlen(yytext) > FILE_NAME) {
         yyerror("file name exceeds file name limit of 256 characters");
     }
 
     yylval.s = new std::string(yytext);
-    return FILE_T;    
+    
+    return (state == TARGET)? FILE_TARGET_T : FILE_T;
 }
 
 ">"[ \t]* {
@@ -58,31 +60,33 @@
     return '>';
 }
 
-<execute_s>[^\n] {
+<execute_s>[^\n]* {
     yylval.s = new std::string(yytext);
     return EXECUTE_T;
 }
 
-<option_s, execute_s>"\n" {
-    state = NONE;
+<option_s,execute_s>"\n" {
+    state = TARGET;
     BEGIN(INITIAL);
-    return SEP_T;
+    return '\n';
 }
 
 : {
     if (state == OPTION) {
         BEGIN(option_s);
+    } else if (state == TARGET) {
+        state = ASSET;
     }
 
     return *yytext;
 }
 
 "\n" {
-    return SEP_T;
-}
+    if (state == ASSET) {
+        state = TARGET;
+    }
 
-<*><<EOF>> {
-    return SEP_T;
+    return *yytext;
 }
 
 [ \t] { }

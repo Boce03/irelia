@@ -1,0 +1,120 @@
+%{
+    #include <iostream>
+    #include <cstdlib>
+    #include <cstdio>
+    #include <string>
+    #include <vector>
+    #include <unordered_map>
+
+    extern int yylex();
+
+    void yyerror(const std::string& msg) {
+        std::cerr << "Error: " << msg << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    std::vector<std::string> options;
+    std::vector<std::string> files;
+    std::vector<std::string> targets;
+%}
+
+
+%union {
+    std::string* s;
+}
+
+%token CONFIG_T GLOBAL_TARGET_T
+%token<s> FILE_TARGET_T FILE_T OPTION_T EXECUTE_T
+
+%nonassoc NO_NEW_LINE
+%nonassoc '\n'
+
+%type new_lines
+%type sentence sentence_wrapper list_options list_files list_targets
+
+%start program
+
+%%
+
+program: program sentence_wrapper
+    | sentence_wrapper
+    ;
+
+sentence_wrapper: sentence '\n'
+    | sentence %prec NO_NEW_LINE
+    | '\n'
+    ;
+
+sentence: CONFIG_T ':' list_options {
+        std::cout << "config:";
+        for (std::string& option : options) {
+            std::cout << " " << option;
+        }
+        std::cout << "\n\n";
+    }
+    | GLOBAL_TARGET_T ':' list_targets {
+        std::cout << "global target:";
+        for (std::string& target : targets) {
+            std::cout << " " << target;
+        }
+        std::cout << "\n\n";
+    }
+    | FILE_TARGET_T ':' list_files new_lines '>' EXECUTE_T {
+        std::cout << "rule target: " << (*$1) << std::endl;
+        std::cout << "assets:";
+        for (std::string& file : files) {
+            std::cout << " " << file;
+        }
+        std::cout << "\nexecute: " << (*$6) << "\n\n";
+
+        delete $1;
+        delete $6;
+    }
+    ;
+
+list_files: list_files FILE_T {
+        files.push_back(*$2);
+        delete $2;
+    }
+    | FILE_T {
+        files.clear();
+        files.push_back(*$1);
+        delete $1;
+    }
+    ;
+
+list_options: list_options OPTION_T {
+        options.push_back(*$2);
+        delete $2;
+    }
+    | OPTION_T {
+        options.push_back(*$1);
+        delete $1;
+    }
+    ;
+
+list_targets: list_targets FILE_T {
+        targets.push_back(*$2);
+        delete $2;
+    }
+    | FILE_T {
+        targets.push_back(*$1);
+        delete $1;
+    }
+    ;
+
+new_lines: new_lines '\n'
+    | '\n'
+    ;
+
+%%
+
+int main(int argc, char** argv) {
+    if (yyparse() == 0) {
+        std::cout << "Sve ok!" << std::endl;
+    } else {
+        std::cout << "Greska!" << std::endl;
+    }
+
+    exit(EXIT_SUCCESS);
+}
