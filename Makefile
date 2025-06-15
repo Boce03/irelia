@@ -1,5 +1,5 @@
-parser: parser.o lexer.o
-	g++ parser.o lexer.o -o parser
+irelia: parser.o lexer.o
+	g++ parser.o lexer.o -o irelia
 
 parser.o: parser.tab.hpp parser.tab.cpp
 	g++ -c parser.tab.cpp -o parser.o
@@ -16,4 +16,4 @@ parser.tab.hpp parser.tab.cpp: parser.ypp
 .PHONY: clean
 
 clean:
-	rm -rf *.tab.* *.o *.yy.* p*.output parser
+	rm -rf *.tab.* *.o *.yy.* p*.output irelia

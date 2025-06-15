@@ -12,6 +12,11 @@
 
     extern void yyerror(const std::string& s);
 
+
+    /*
+        enums together with state mechanism in flex enable us to sent different tokens
+        with same content, but they differ in meaning in our grammar (so we dodge shift/reduce conflicts), and to do different actions on same matched pattern depending on situation (in our case, different flags .CONFIG, :, >)
+    */
     typedef enum{
         TARGET,
         ASSET,
@@ -51,7 +56,7 @@
 
     yylval.s = new std::string(yytext);
     
-    return (state == TARGET)? FILE_TARGET_T : FILE_T;
+    return (state == TARGET)? TARGET_T : ASSET_T;
 }
 
 ">"[ \t]* {
